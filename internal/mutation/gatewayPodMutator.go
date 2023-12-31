@@ -321,6 +321,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 			// Create sidecar container
 			var sidecarContainerRunAsUser = int64(0) // Run init container as root
 			var sidecarContainerRunAsNonRoot = false
+			var restartPolicy = corev1.ContainerRestartPolicyAlways
 			container := corev1.Container{
 				Name:    GATEWAY_SIDECAR_CONTAINER_NAME,
 				Image:   cfg.cmdConfig.SidecarImage,
@@ -357,6 +358,7 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 				// TerminationMessagePath:   "",
 				// TerminationMessagePolicy: "",
 				ImagePullPolicy: corev1.PullPolicy(cfg.cmdConfig.SidecarImagePullPol),
+				RestartPolicy:   &restartPolicy,
 				SecurityContext: &corev1.SecurityContext{
 					Capabilities: &corev1.Capabilities{
 						Add: []corev1.Capability{
@@ -373,8 +375,8 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 				// TTY:                      false,
 			}
 
-			//Add container to pod
-			pod.Spec.Containers = append(pod.Spec.Containers, container)
+			//Add sidecar container to pod
+			pod.Spec.InitContainers = append(pod.Spec.InitContainers, container)
 		}
 
 		if cfg.cmdConfig.ConfigmapName != "" {

@@ -117,11 +117,11 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 		})
 	}
 
-	var containers []corev1.Container
 	var sidecarContainerRunAsUser = int64(0) // Run init container as root
 	var sidecarContainerRunAsNonRoot = false
+	var restartPolicy = corev1.ContainerRestartPolicyAlways
 	if sidecarImage != "" {
-		containers = append(containers, corev1.Container{
+		initContainers = append(initContainers, corev1.Container{
 			Name:    mutator.GATEWAY_SIDECAR_CONTAINER_NAME,
 			Image:   sidecarImage,
 			Command: []string{testSidecarCmd},
@@ -144,6 +144,7 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 				},
 			},
 			ImagePullPolicy: corev1.PullPolicy(testSidecarImagePullPol),
+			RestartPolicy:   &restartPolicy,
 			SecurityContext: &corev1.SecurityContext{
 				Capabilities: &corev1.Capabilities{
 					Add: []corev1.Capability{
@@ -167,7 +168,6 @@ func getExpectedPodSpec_gateway(gateway string, DNS string, initImage string, si
 
 	spec := corev1.PodSpec{
 		InitContainers: initContainers,
-		Containers:     containers,
 	}
 
 	if DNS != "" {

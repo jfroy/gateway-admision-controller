@@ -32,7 +32,8 @@ const (
 	testSidecarImagePullPol = "IfNotPresent"
 	testSidecarCmd          = "sidecarCmd"
 	testSidecarMountPoint   = "/mnt"
-	testConfigmapName       = "settings"
+	testConfigmapName       = "settings-configmap"
+	testSecretName          = "settings-secret"
 	testNamespace           = "myNameSpace"
 )
 
@@ -230,6 +231,27 @@ func getExpectedPodSpec_gateway_DNSPolicy(gateway string, DNS string, initImage 
 	spec := getExpectedPodSpec_gateway(gateway, DNS, initImage, sidecarImage)
 	spec.DNSPolicy = corev1.DNSPolicy(DNSPolicy)
 
+	return spec
+}
+
+func getExpectedPodSpec_gateway_Secret(gateway string, DNS string, initImage string, sidecarImage string) corev1.PodSpec {
+	spec := getExpectedPodSpec_gateway(gateway, DNS, initImage, sidecarImage)
+	if initImage != "" || sidecarImage != "" {
+		for _, c := range spec.InitContainers {
+			c.VolumeMounts = []corev1.VolumeMount{{
+				Name:      mutator.GATEWAY_SECRET_VOLUME_NAME,
+				ReadOnly:  true,
+				MountPath: testInitMountPoint,
+			}}
+		}
+		spec.Volumes = []corev1.Volume{{
+			Name: mutator.GATEWAY_SECRET_VOLUME_NAME,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  testSecretName,
+					DefaultMode: &mutator.GATEWAY_SECRET_VOLUME_MODE,
+				}}}}
+	}
 	return spec
 }
 
@@ -579,6 +601,21 @@ func TestGatewayPodMutator(t *testing.T) {
 				Spec: getExpectedPodSpec_gateway_DNSPolicy(testGatewayIP, testDNSIP, testInitImage, "", testDNSPolicy),
 			},
 		},
+		"Gateway IP, init image, secret": {
+			cmdConfig: config.CmdConfig{
+				SetGatewayDefault: true,
+				Gateway:           testGatewayIP,
+				InitImage:         testInitImage,
+				InitCmd:           testInitCmd,
+				InitImagePullPol:  testInitImagePullPol,
+				InitMountPoint:    testInitMountPoint,
+				SecretName:        testSecretName,
+			},
+			obj: &corev1.Pod{},
+			expObj: &corev1.Pod{
+				Spec: getExpectedPodSpec_gateway_Secret(testGatewayIP, "", testInitImage, ""),
+			},
+		},
 	}
 
 	logrusLog := logrus.New()
@@ -595,7 +632,7 @@ func TestGatewayPodMutator(t *testing.T) {
 			_, err = m.GatewayPodMutator(context.TODO(), nil, test.obj)
 			require.NoError(err)
 
-			assert.Equal(test.expObj, test.obj)
+			assert.EqualValuesf(test.expObj, test.obj, "%v failed", name)
 		})
 	}
 }

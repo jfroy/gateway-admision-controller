@@ -32,6 +32,7 @@ type CmdConfig struct {
 	SidecarCmd                string
 	SidecarMountPoint         string
 	ConfigmapName             string
+	SecretName                string
 }
 
 var (
@@ -72,6 +73,7 @@ func NewCmdConfig() (*CmdConfig, error) {
 	app.Flag("sidecarMountPoint", "Mountpoint for configmap in sidecar container").StringVar(&c.SidecarMountPoint)
 
 	app.Flag("configmapName", "Name of the configmap to attach to containers").StringVar(&c.ConfigmapName)
+	app.Flag("secretName", "Name of the secret to attach to containers").StringVar(&c.SecretName)
 
 	_, err := app.Parse(os.Args[1:])
 	if err != nil {

@@ -21,10 +21,12 @@ const (
 	GATEWAY_INIT_CONTAINER_NAME    = "gateway-init"
 	GATEWAY_SIDECAR_CONTAINER_NAME = "gateway-sidecar"
 	GATEWAY_CONFIGMAP_VOLUME_NAME  = "gateway-configmap"
+	GATEWAY_SECRET_VOLUME_NAME     = "gateway-secret"
 )
 
 var (
 	GATEWAY_CONFIGMAP_VOLUME_MODE int32 = 0777
+	GATEWAY_SECRET_VOLUME_MODE    int32 = 0777
 )
 
 type GatewayPodMutator interface {
@@ -388,6 +390,17 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 							Name: cfg.cmdConfig.ConfigmapName,
 						},
 						DefaultMode: &GATEWAY_CONFIGMAP_VOLUME_MODE,
+					},
+				},
+			})
+		}
+		if cfg.cmdConfig.SecretName != "" {
+			pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+				Name: GATEWAY_SECRET_VOLUME_NAME,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName:  cfg.cmdConfig.SecretName,
+						DefaultMode: &GATEWAY_SECRET_VOLUME_MODE,
 					},
 				},
 			})

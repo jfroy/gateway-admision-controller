@@ -227,21 +227,24 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 			pod.Spec.DNSPolicy = corev1.DNSPolicy(cfg.cmdConfig.DNSPolicy)
 		}
 
+		// FIXME(jfroy): Rework the config-or-secret logic because there can be only one
+		configVolumeName := ""
+		if cfg.cmdConfig.ConfigmapName != "" {
+			configVolumeName = GATEWAY_CONFIGMAP_VOLUME_NAME
+		}
+		if cfg.cmdConfig.SecretName != "" {
+			configVolumeName = GATEWAY_SECRET_VOLUME_NAME
+		}
+
 		if cfg.cmdConfig.InitImage != "" {
 
 			var volumeMount []corev1.VolumeMount
-			if cfg.cmdConfig.InitMountPoint != "" {
-				// Create volume mount
-				volumeMount = []corev1.VolumeMount{
-					corev1.VolumeMount{
-						Name:      GATEWAY_CONFIGMAP_VOLUME_NAME,
-						ReadOnly:  true,
-						MountPath: cfg.cmdConfig.InitMountPoint,
-						// SubPath:          "",
-						// MountPropagation: &"",
-						// SubPathExpr:      "",
-					},
-				}
+			if cfg.cmdConfig.InitMountPoint != "" && configVolumeName != "" {
+				volumeMount = []corev1.VolumeMount{{
+					Name:      configVolumeName,
+					ReadOnly:  true,
+					MountPath: cfg.cmdConfig.InitMountPoint,
+				}}
 			}
 
 			// Create init container
@@ -306,18 +309,13 @@ func (cfg gatewayPodMutatorCfg) GatewayPodMutator(_ context.Context, adReview *k
 		if cfg.cmdConfig.SidecarImage != "" {
 
 			var volumeMount []corev1.VolumeMount
-			if cfg.cmdConfig.SidecarMountPoint != "" {
-				// Create volume mount
-				volumeMount = []corev1.VolumeMount{
-					corev1.VolumeMount{
-						Name:      GATEWAY_CONFIGMAP_VOLUME_NAME,
-						ReadOnly:  true,
-						MountPath: cfg.cmdConfig.SidecarMountPoint,
-						// SubPath:          "",
-						// MountPropagation: &"",
-						// SubPathExpr:      "",
-					},
-				}
+			if cfg.cmdConfig.SidecarMountPoint != "" && configVolumeName != "" {
+				// Create config volume mount
+				volumeMount = []corev1.VolumeMount{{
+					Name:      configVolumeName,
+					ReadOnly:  true,
+					MountPath: cfg.cmdConfig.SidecarMountPoint,
+				}}
 			}
 
 			// Create sidecar container

@@ -237,8 +237,8 @@ func getExpectedPodSpec_gateway_DNSPolicy(gateway string, DNS string, initImage 
 func getExpectedPodSpec_gateway_Secret(gateway string, DNS string, initImage string, sidecarImage string) corev1.PodSpec {
 	spec := getExpectedPodSpec_gateway(gateway, DNS, initImage, sidecarImage)
 	if initImage != "" || sidecarImage != "" {
-		for _, c := range spec.InitContainers {
-			c.VolumeMounts = []corev1.VolumeMount{{
+		for i := range spec.InitContainers {
+			spec.InitContainers[i].VolumeMounts = []corev1.VolumeMount{{
 				Name:      mutator.GATEWAY_SECRET_VOLUME_NAME,
 				ReadOnly:  true,
 				MountPath: testInitMountPoint,
